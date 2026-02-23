@@ -284,9 +284,9 @@ def detect_web_attacks(
     path traversal, and sequential enumeration/reconnaissance.
 
     Aggregates findings by attack type, showing unique IPs, targeted
-    endpoints, known attack tools (sqlmap, nikto), and sample payloads.
+    endpoints, and known attack tools (sqlmap, nikto).
 
-    attack_type filter: None (all) | 'sql_injection_attempt' | 'xss_attempt'
+    attack_type filter: None (all) | 'xss_attempt' | 'sql_injection_attempt'
                         | 'path_traversal_attempt' | 'sequential_enumeration'
     """
     window = parse_window(time_window)
@@ -301,16 +301,16 @@ def detect_web_attacks(
     if attack_type:
         events = [
             e for e in events
-            if e.get("metadata", {}).get("attack_type") == attack_type
+            if e.get("metadata", {}).get("pattern") == attack_type
         ]
 
     if not events:
         return []
 
-    # Group by attack_type
+    # Group by pattern (the actual log field name for attack type)
     by_type: dict = defaultdict(list)
     for e in events:
-        atype = e.get("metadata", {}).get("attack_type", "unknown")
+        atype = e.get("metadata", {}).get("pattern", "unknown")
         by_type[atype].append(e)
 
     findings = []
@@ -332,17 +332,11 @@ def detect_web_attacks(
             if any(tool in ua.lower() for tool in _KNOWN_ATTACK_TOOLS)
         })
 
-        # Up to 3 sample payloads for analyst context
-        sample_payloads = [
-            e.get("metadata", {}).get("payload_snippet")
-            for e in sorted_events
-            if e.get("metadata", {}).get("payload_snippet")
-        ][:3]
-
+        # status_code is a top-level field in these events
         status_codes = list({
-            e.get("metadata", {}).get("http_status_code")
+            e.get("status_code")
             for e in aevents
-            if e.get("metadata", {}).get("http_status_code") is not None
+            if e.get("status_code") is not None
         })
         gateway_blocked = bool(status_codes) and all(sc == 403 for sc in status_codes)
 
@@ -355,7 +349,6 @@ def detect_web_attacks(
             "source_ips": unique_ips[:10],
             "endpoints_targeted": endpoints,
             "attack_tools_detected": attack_tools,
-            "sample_payloads": sample_payloads,
             "http_status_codes": status_codes,
             "gateway_blocked": gateway_blocked,
             "first_seen": sorted_events[0]["timestamp"],

@@ -111,6 +111,9 @@ agent.py               ← Agentic loop (max 5 steps, dedup protection)
 | `detect_web_attacks` | OWASP Top 10 web attack detection: SQL injection, XSS, path traversal, sequential enumeration. Identifies attack tools (sqlmap, nikto) and sample payloads. | `time_window`, `attack_type` |
 | `get_event_statistics` | Event counts, trends, period comparisons, peak hours | `time_window` |
 
+> **Note on `detect_web_attacks` (6th tool, added after log review):**
+> The project spec listed `suspicious_activity` as an event type in the log format but did not assign a required tool to it — the 4 mandatory tools only cover brute force, access anomalies, privilege actions, and rate limits. After skimming the actual log files and cross-referencing the OWASP Top 10 resource linked in the spec, it became clear that all 41 `suspicious_activity` events in the sample data were active web attack attempts (SQL injection, XSS, path traversal, sequential enumeration) using known offensive tools (sqlmap, nikto). These were completely invisible to every other tool — they only surfaced as a raw count in statistics. Adding a dedicated tool was the right call: these are distinct OWASP Top 10 attack categories that carry their own severity, remediation steps, and detection logic, none of which belong in `analyze_rate_limit_violations`.
+
 **Adding a new tool:**
 1. Write the function in `tools/`
 2. Add it to `TOOL_REGISTRY` and `TOOL_SCHEMAS` in `tools/__init__.py`
