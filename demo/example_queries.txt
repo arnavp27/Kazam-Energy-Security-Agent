@@ -1,0 +1,116 @@
+# Security Agent — Example Queries
+# Format: QUERY | EXPECTED_TOOLS | INTENT_CLASS
+# Use these to manually verify agent behavior during demo or testing.
+
+# ─── Authentication Threats ───────────────────────────────────────────────────
+
+Are there any brute force attacks happening right now?
+  Expected tools: detect_failed_login_patterns, get_event_statistics
+  Intent: specific
+
+Show me all failed login attempts in the last 2 hours
+  Expected tools: detect_failed_login_patterns
+  Intent: specific
+
+Which user accounts are currently locked?
+  Expected tools: detect_failed_login_patterns
+  Intent: specific
+
+Is there any credential stuffing activity today?
+  Expected tools: detect_failed_login_patterns
+  Intent: specific
+
+# ─── Access Anomalies ─────────────────────────────────────────────────────────
+
+Has user_98765 accessed the system from any unusual locations?
+  Expected tools: check_unusual_access, get_event_statistics
+  Intent: specific
+
+Show me admin actions from the last 24 hours
+  Expected tools: audit_privilege_actions
+  Intent: specific
+
+Are there any suspicious IP addresses in the last 6 hours?
+  Expected tools: check_unusual_access, get_event_statistics
+  Intent: specific
+
+Any session hijacking attempts today?
+  Expected tools: check_unusual_access
+  Intent: specific
+
+# ─── Multi-Step / Cross-Reference ─────────────────────────────────────────────
+
+Find users with failed logins then check if they succeeded later
+  Expected tools: detect_failed_login_patterns, get_event_statistics
+  Intent: specific
+  Note: persistence check is built into detect_failed_login_patterns
+
+Show me rate limit violations and cross-reference with failed auth attempts
+  Expected tools: analyze_rate_limit_violations, detect_failed_login_patterns, get_event_statistics
+  Intent: specific (conjunction detected)
+
+Did anyone escalate privileges after brute force attempts?
+  Expected tools: detect_failed_login_patterns, audit_privilege_actions, get_event_statistics
+  Intent: specific (conjunction "after" detected)
+
+# ─── Privilege & Admin ────────────────────────────────────────────────────────
+
+Show me all privilege escalations in the last 24 hours
+  Expected tools: audit_privilege_actions
+  Intent: specific
+
+Any sensitive data exports today?
+  Expected tools: audit_privilege_actions
+  Intent: specific
+
+Who changed config settings in the last 6 hours?
+  Expected tools: audit_privilege_actions
+  Intent: specific
+
+# ─── Rate Limiting / API Abuse ────────────────────────────────────────────────
+
+Any API rate limit violations in the last 6 hours?
+  Expected tools: analyze_rate_limit_violations, get_event_statistics
+  Intent: specific
+
+Is anyone scraping our charging station API?
+  Expected tools: analyze_rate_limit_violations
+  Intent: specific
+
+# ─── Trend Analysis ───────────────────────────────────────────────────────────
+
+What's the most common security event today?
+  Expected tools: get_event_statistics
+  Intent: specific
+
+Compare failed login rates this hour vs last hour
+  Expected tools: get_event_statistics, detect_failed_login_patterns
+  Intent: specific
+
+Give me a summary of all events in the last 24 hours
+  Expected tools: get_event_statistics
+  Intent: specific
+
+# ─── Vague (Should trigger clarification) ─────────────────────────────────────
+
+Show me security issues
+  Expected: clarification message (time period options)
+  Intent: vague
+
+Any problems?
+  Expected: clarification message
+  Intent: vague
+
+Overview
+  Expected: clarification message
+  Intent: vague
+
+# ─── Edge Cases ───────────────────────────────────────────────────────────────
+
+Show me security issues in the last 3 days
+  Expected tools: all tools (general, no specific pattern matched for "3 days" phrasing)
+  Intent: general
+
+What happened at 2 AM last night?
+  Expected tools: check_unusual_access, get_event_statistics
+  Intent: specific (odd-hours keyword)
