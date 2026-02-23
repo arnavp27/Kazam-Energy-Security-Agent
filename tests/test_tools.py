@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tools.auth_analysis import detect_failed_login_patterns, parse_window
 from tools.access_analysis import check_unusual_access
-from tools.threat_detection import audit_privilege_actions, analyze_rate_limit_violations
+from tools.threat_detection import audit_privilege_actions, analyze_rate_limit_violations, detect_web_attacks
 from tools.stats import get_event_statistics
 from tools import format_tool_output, execute_tool
 from datetime import timedelta
@@ -196,6 +196,74 @@ class TestGetEventStatistics:
     def test_very_short_window_handled(self):
         result = get_event_statistics(time_window="1m")
         assert isinstance(result, list)
+
+
+# ---------------------------------------------------------------------------
+# detect_web_attacks
+# ---------------------------------------------------------------------------
+
+class TestDetectWebAttacks:
+    def test_returns_list(self):
+        result = detect_web_attacks(time_window="7d")
+        assert isinstance(result, list)
+
+    def test_wide_window_finds_attacks(self):
+        # 41 suspicious_activity events are in the sample logs
+        result = detect_web_attacks(time_window="7d")
+        assert len(result) > 0
+
+    def test_findings_have_required_fields(self):
+        result = detect_web_attacks(time_window="7d")
+        required = {
+            "attack_type", "total_attempts", "unique_source_ips",
+            "endpoints_targeted", "first_seen", "last_seen",
+            "severity", "confidence", "recommendation", "gateway_blocked",
+        }
+        for f in result:
+            for field in required:
+                assert field in f, f"Missing field '{field}' in finding: {f}"
+
+    def test_severity_values_are_valid(self):
+        result = detect_web_attacks(time_window="7d")
+        valid = {"CRITICAL", "HIGH", "MEDIUM", "LOW"}
+        for f in result:
+            assert f["severity"] in valid
+
+    def test_sql_injection_is_critical(self):
+        result = detect_web_attacks(time_window="7d", attack_type="sql_injection_attempt")
+        for f in result:
+            assert f["severity"] == "CRITICAL"
+
+    def test_attack_type_filter(self):
+        result = detect_web_attacks(time_window="7d", attack_type="xss_attempt")
+        for f in result:
+            assert f["attack_type"] == "xss_attempt"
+
+    def test_attack_type_filter_empty_when_no_match(self):
+        result = detect_web_attacks(time_window="7d", attack_type="nonexistent_type")
+        assert result == []
+
+    def test_gateway_blocked_field_is_bool(self):
+        result = detect_web_attacks(time_window="7d")
+        for f in result:
+            assert isinstance(f["gateway_blocked"], bool)
+
+    def test_known_attack_tools_detected(self):
+        # Sample logs include sqlmap and nikto User-Agents
+        result = detect_web_attacks(time_window="7d")
+        all_tools = [tool for f in result for tool in f.get("attack_tools_detected", [])]
+        assert len(all_tools) > 0, "Expected sqlmap/nikto to be detected in sample data"
+
+    def test_short_window_returns_empty_list(self):
+        # All attacks are on 2025-02-19; reference time is 2025-02-21
+        result = detect_web_attacks(time_window="1h")
+        assert isinstance(result, list)
+        assert result == []
+
+    def test_confidence_is_definite(self):
+        result = detect_web_attacks(time_window="7d")
+        for f in result:
+            assert f["confidence"] == "definite"
 
 
 # ---------------------------------------------------------------------------

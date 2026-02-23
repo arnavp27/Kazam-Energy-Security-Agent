@@ -8,7 +8,7 @@ import json
 
 from tools.auth_analysis import detect_failed_login_patterns
 from tools.access_analysis import check_unusual_access
-from tools.threat_detection import audit_privilege_actions, analyze_rate_limit_violations
+from tools.threat_detection import audit_privilege_actions, analyze_rate_limit_violations, detect_web_attacks
 from tools.stats import get_event_statistics
 
 # --- Output Formatting ---
@@ -52,6 +52,7 @@ TOOL_REGISTRY = {
     "check_unusual_access": check_unusual_access,
     "audit_privilege_actions": audit_privilege_actions,
     "analyze_rate_limit_violations": analyze_rate_limit_violations,
+    "detect_web_attacks": detect_web_attacks,
     "get_event_statistics": get_event_statistics,
 }
 
@@ -174,6 +175,41 @@ TOOL_SCHEMAS = [
                     },
                 },
                 "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "detect_web_attacks",
+            "description": (
+                "Detect OWASP Top 10 web application attack attempts: SQL injection, XSS, "
+                "path traversal, and sequential enumeration/reconnaissance. "
+                "Call this for: web attacks, SQLi, XSS, injection, path traversal, "
+                "sqlmap, nikto, scanning tools, suspicious payloads, or application-layer threats."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "time_window": {
+                        "type": "string",
+                        "description": "Time window to analyze. Examples: '1h', '6h', '24h', '7d'.",
+                    },
+                    "attack_type": {
+                        "type": "string",
+                        "enum": [
+                            "sql_injection_attempt",
+                            "xss_attempt",
+                            "path_traversal_attempt",
+                            "sequential_enumeration",
+                        ],
+                        "description": (
+                            "Filter by specific attack type. "
+                            "Omit to return all web attack types."
+                        ),
+                    },
+                },
+                "required": ["time_window"],
             },
         },
     },

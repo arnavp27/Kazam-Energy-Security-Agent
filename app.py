@@ -72,6 +72,7 @@ with st.sidebar:
         "Show unusual access patterns in last 7 days",
         "Show privilege escalations in last 7 days",
         "Any rate limit violations in the last 7 days?",
+        "Any web attacks (SQLi, XSS, path traversal) in the last 7 days?",
         "What's the most common security event in the last 7 days?",
         "Did anyone escalate privileges after failed logins?",
         "Show me all critical security issues in last 7 days",
